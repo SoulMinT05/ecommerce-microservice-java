@@ -10,6 +10,8 @@ import org.soulmin.ecommerce.kafka.OrderConfirmation;
 import org.soulmin.ecommerce.kafka.OrderProducer;
 import org.soulmin.ecommerce.orderline.OrderLineRequest;
 import org.soulmin.ecommerce.orderline.OrderLineService;
+import org.soulmin.ecommerce.payment.PaymentClient;
+import org.soulmin.ecommerce.payment.PaymentRequest;
 import org.soulmin.ecommerce.product.ProductClient;
 import org.soulmin.ecommerce.product.PurchaseRequest;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class OrderService {
     private final CustomerClient customerClient;
     private final ProductClient productClient;
     private final OrderProducer orderProducer;
+    private final PaymentClient paymentClient;
 
     public Integer createOrder(OrderRequest orderRequest) {
         var customer = this.customerClient.findCustomerById(orderRequest.customerId())
@@ -46,6 +49,15 @@ public class OrderService {
             );
         }
 
+        paymentClient.requestOrderPayment(
+                new PaymentRequest(
+                        orderRequest.amount(),
+                        orderRequest.paymentMethod(),
+                        orderRequest.id(),
+                        orderRequest.reference(),
+                        customer
+                )
+        );
 
         orderProducer.sendOrderConfirmation(
                 new OrderConfirmation(
